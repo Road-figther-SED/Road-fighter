@@ -121,7 +121,7 @@ void writeResetMatrix(byte *pointerRegMatrix, byte *pointerRegCar)
   /* Global variables. */
 
   /* Here is the data to reset matrix */
-  pointerRegMatrix[7] = B01111111;
+  pointerRegMatrix[7] = B11111111;
   pointerRegMatrix[6] = B11111111;
   pointerRegMatrix[5] = B11111111;
   pointerRegMatrix[4] = B11111111;
