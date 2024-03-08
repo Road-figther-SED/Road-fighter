@@ -61,7 +61,7 @@ unsigned long delaytime = 2000;
 int i = 0;
 
 /* States ans signals to change state*/
-enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGTH, STATELOST};
+enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGHT, STATELOST, STATENEXTLEVEL, STATELEVELPASS};
 uint8_t state = STATERESET;
 
 enum Keys_enum {RESET_KEY, START_KEY, LEFT_KEY, RIGHT_KEY, NO_KEY};
@@ -219,14 +219,14 @@ void writeCarBase(byte *pointerRegCar, byte *pointerShiftDir)
   int m;
   
   /* Here is the data to start matrix */
-  if (pointerShiftDir[0] == B00000001)
+  if (pointerShiftDir[0] == B00000010)
   {
     if (pointerRegCar[0] == B00000001)
       pointerRegCar[0] = pointerRegCar[0];
     else
       pointerRegCar[0] = pointerRegCar[0] >> 1;
   }
-  else if (pointerShiftDir[0] == B00000010)
+  else if (pointerShiftDir[0] == B00000001)
   {
     if (pointerRegCar[0] == B10000000)
       pointerRegCar[0] = pointerRegCar[0];
@@ -386,7 +386,9 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
       else if (keys == LEFT_KEY)
         state = STATELEFT;
       else if (keys == RIGHT_KEY)
-        state = STATERIGTH;
+        state = STATERIGHT;
+      else if (i == 10+8 | i == 15+8 | i == 20+8)
+        state = STATELEVELPASS;
       else
         state = STATECHECK;
       break;
@@ -397,7 +399,7 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
       state = STATECHECK;
       break;
 
-    case STATERIGTH:
+    case STATERIGHT:
       pointerShiftDir[0] = B00000010;
       writeCarBase(pointerRegCar, pointerShiftDir);
       state = STATECHECK;
@@ -411,7 +413,21 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
       else
         state = STATELOST;
       break;
+    
+    case STATELEVELPASS:
+      state = STATENEXTLEVEL;
+      break;
 
+    case STATENEXTLEVEL:
+      if (delaytime == 2000) //* el 2000 toca cambiarlo si cambia en la línea 58
+        delaytime=1500; //* delay para N2
+      else if (delaytime == 1500) //* el 1500 toca cambiarlo si cambia en la anterior linea
+        delaytime=1000;
+      else
+        delaytime=delaytime;
+      state = STATECHECK;
+      break;
+    
     default:
       state = STATERESET;
       break;
