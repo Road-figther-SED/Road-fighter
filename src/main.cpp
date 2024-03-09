@@ -338,6 +338,7 @@ byte read_KEY(void)
       keys = NO_KEY;
       break;
   }
+incomingByte = 'N'; //! SOLUCIÓN BIT MOVIENDOSE SIN PARAR
 return keys;
 }
 //=======================================================
