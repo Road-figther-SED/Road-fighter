@@ -61,10 +61,10 @@ unsigned long delaytime = 2000;
 int i = 0;
 
 /* States ans signals to change state*/
-enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGHT, STATELOST, STATENEXTLEVEL, STATELEVELPASS};
+enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGHT, STATELOST, STATENEXTLEVEL, STATELEVELPASS, STATEPAUSE};
 uint8_t state = STATERESET;
 
-enum Keys_enum {RESET_KEY, START_KEY, LEFT_KEY, RIGHT_KEY, NO_KEY};
+enum Keys_enum {RESET_KEY, START_KEY, LEFT_KEY, RIGHT_KEY, NO_KEY, PAUSE_KEY};
 uint8_t keys = RESET_KEY;
 
 enum Status_enum {LOST, CONTINUE};
@@ -337,6 +337,10 @@ byte read_KEY(void)
     default:
       keys = NO_KEY;
       break;
+    case 'P':
+      keys = PAUSE_KEY; 
+      break;
+
   }
 return keys;
 }
@@ -381,6 +385,8 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
       checkLostMatrix(pointerRegMatrix, pointerRegCar);
       if (Status == LOST)
         state = STATELOST;
+      else if (keys == PAUSE_KEY) // Añade esta línea para verificar la tecla de pausa
+        state  = STATEPAUSE;      // Cambia al estado de pausa
       else if (keys == RESET_KEY)
         state = STATERESET;
       else if (keys == LEFT_KEY)
@@ -431,6 +437,15 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
     default:
       state = STATERESET;
       break;
+
+    case STATEPAUSE:
+  // Aquí, simplemente espera por otra presión de tecla para reanudar.
+      if (keys == PAUSE_KEY || keys == START_KEY) { // Usar START_KEY o cualquier otra tecla para reanudar.
+        state = STATECHECK; // O el estado desde el cual la pausa fue activada.
+      }
+      break;
+
+    
   }
 }
 //=======================================================
