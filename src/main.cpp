@@ -22,6 +22,7 @@
 #include <Arduino.h>
 
 #define REALMATRIX // Variable to use real matrix. Comment to not use it.
+#define botones //variable para usar botones, si no se usa comentar
 
 #ifdef REALMATRIX
 #include "LedControl.h"
@@ -61,7 +62,7 @@ unsigned long delaytime = 2000;
 int i = 0;
 
 /* States ans signals to change state*/
-enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGHT, STATELOST, STATENEXTLEVEL, STATELEVELPASS, STATEPAUSE};
+enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGHT, STATELOST, STATENEXTLEVEL, STATELEVELPASS, STATEPAUSE, STATEMOVE, STATECARS};
 uint8_t state = STATERESET;
 
 enum Keys_enum {RESET_KEY, START_KEY, LEFT_KEY, RIGHT_KEY, NO_KEY, PAUSE_KEY};
@@ -95,10 +96,20 @@ void setup()
   /* The MAX72XX is in power-saving mode on startup, we have to do a wakeup call. */
   lc.shutdown(0, false);
   /* Set the brightness to a medium values. */
-  lc.setIntensity(0, 8);
+  lc.setIntensity(0, 1); //? NORMALMENTE ES 8 LA INTENSIDAD
   /* Clear the display. */
   lc.clearDisplay(0);
 #endif
+
+#ifdef botones
+  /* Pin definition para botones.
+  ESP32 pin 22 es boton izquierdo
+  ESP32 pin 19 es boton derecho
+  */
+  pinMode(22,INPUT_PULLDOWN);
+  pinMode(19,INPUT_PULLDOWN);
+#endif
+
   /* Serial port initialization. */
   Serial.begin(9600);
 
@@ -319,28 +330,37 @@ byte read_KEY(void)
     delay(10);
     //    Serial.print("I received: ");
     //    Serial.println(incomingByte, DEC);
-  }
-  switch (incomingByte)
-  {
-    case 'R':
-      keys = RESET_KEY;
-      break;
-    case 'S':
-      keys = START_KEY;
-      break;
-    case 'A':
-      keys = LEFT_KEY;
-      break;
-    case 'D':
-      keys = RIGHT_KEY;
-      break;
-    default:
-      keys = NO_KEY;
-      break;
-    case 'P':
-      keys = PAUSE_KEY; 
-      break;
-
+  } //! NO FUNCIONA TOCA REVISARLO
+  bool incomingPulseR;
+  bool incomingPulseL;
+  incomingPulseR = digitalRead(19);
+  incomingPulseL = digitalRead(22);
+  if (incomingPulseR == HIGH)
+    keys = RIGHT_KEY;
+  else if(incomingPulseL == HIGH)
+    keys = LEFT_KEY;
+  else{ //! VA HASTA ACÁ
+    switch (incomingByte)
+    {
+      case 'R':
+        keys = RESET_KEY;
+        break;
+      case 'S':
+        keys = START_KEY;
+        break;
+      case 'A':
+        keys = LEFT_KEY;
+        break;
+      case 'D':
+        keys = RIGHT_KEY;
+        break;
+      case 'P':
+        keys = PAUSE_KEY; 
+        break;
+      default:
+        keys = NO_KEY;
+        break;
+    }
   }
 incomingByte = 'N'; //! SOLUCIÓN BIT MOVIENDOSE SIN PARAR
 return keys;
@@ -381,35 +401,46 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
     case STATECHECK:
       pointerShiftDir[0] = B00000000;
       writeCarBase(pointerRegCar, pointerShiftDir);
-      writeGoCarsMatrix(pointerRegMatrix);
-      delay(delaytime);
       checkLostMatrix(pointerRegMatrix, pointerRegCar);
       if (Status == LOST)
         state = STATELOST;
-      else if (keys == PAUSE_KEY) // Añade esta línea para verificar la tecla de pausa
+      else if (i == 10+8 | i == 15+8 | i == 20+8)
+        state = STATELEVELPASS;
+      else if (keys != NO_KEY)
+        state = STATEMOVE;
+      else
+        state = STATECARS;
+      break;
+    
+    case STATEMOVE:
+      if (keys == PAUSE_KEY) // Añade esta línea para verificar la tecla de pausa
         state  = STATEPAUSE;      // Cambia al estado de pausa
       else if (keys == RESET_KEY)
         state = STATERESET;
       else if (keys == LEFT_KEY)
-        state = STATELEFT;
+        {state = STATELEFT;
+        break;}
       else if (keys == RIGHT_KEY)
-        state = STATERIGHT;
-      else if (i == 10+8 | i == 15+8 | i == 20+8)
-        state = STATELEVELPASS;
+        {state = STATERIGHT;
+        break;}
       else
         state = STATECHECK;
       break;
-
+    case STATECARS:
+      writeGoCarsMatrix(pointerRegMatrix);
+      delay(delaytime);
+      state=STATECHECK;
+      break;
     case STATELEFT:
       pointerShiftDir[0] = B00000001;
       writeCarBase(pointerRegCar, pointerShiftDir);
-      state = STATECHECK;
+      state = STATEMOVE;
       break;
 
     case STATERIGHT:
       pointerShiftDir[0] = B00000010;
       writeCarBase(pointerRegCar, pointerShiftDir);
-      state = STATECHECK;
+      state = STATEMOVE;
       break;
 
     case STATELOST:
@@ -429,10 +460,10 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
       if (delaytime == 2000) //* el 2000 toca cambiarlo si cambia en la línea 58
         delaytime=1500; //* delay para N2
       else if (delaytime == 1500) //* el 1500 toca cambiarlo si cambia en la anterior linea
-        delaytime=1000;
+        delaytime=1000; //* delay para N3
       else
-        delaytime=delaytime;
-      state = STATECHECK;
+        delaytime=delaytime; //* se mantiene delay actual
+      state = STATEMOVE;
       break;
     
     default:
