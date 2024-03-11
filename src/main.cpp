@@ -20,7 +20,8 @@
 //  LIBRARY Definition
 //=======================================================
 #include <Arduino.h>
-
+#define BUTTON_LEFT 22
+#define BUTTON_RIGHT 19
 #define REALMATRIX // Variable to use real matrix. Comment to not use it.
 
 #ifdef REALMATRIX
@@ -33,7 +34,8 @@
  */
 LedControl lc=LedControl(23,18,5,1);
 #endif
-
+bool readLeftButton();
+bool readRightButton();
 //=======================================================
 //  IF PROBLEMS
 //=======================================================
@@ -110,6 +112,14 @@ void setup()
 
   /* Pointer to use shift dir between functions */
   pointerShiftDir = &ShiftDir[0];
+  pinMode(BUTTON_LEFT, INPUT_PULLUP);
+  pinMode(BUTTON_RIGHT, INPUT_PULLUP);
+}
+bool readLeftButton() {
+  return digitalRead(BUTTON_LEFT) == LOW;
+}
+bool readRightButton() {
+  return digitalRead(BUTTON_RIGHT) == LOW;
 }
 
 //=======================================================
@@ -311,47 +321,59 @@ void PrintALLMatrix(byte *pointerRegMatrix, byte *pointerRegCar)
 //=======================================================
 //  FUNCTION: read_KEY
 //=======================================================
+//=======================================================
+//  FUNCTION: read_KEY
+//=======================================================
 byte read_KEY(void)
 {
-  if (Serial.available() > 0)
-  {
-    incomingByte = Serial.read();
-    delay(10);
-    //    Serial.print("I received: ");
-    //    Serial.println(incomingByte, DEC);
-  }
-  switch (incomingByte)
-  {
-    case 'R':
-      keys = RESET_KEY;
-      break;
-    case 'S':
-      keys = START_KEY;
-      break;
-    case 'A':
-      keys = LEFT_KEY;
-      break;
-    case 'D':
-      keys = RIGHT_KEY;
-      break;
-    default:
-      keys = NO_KEY;
-      break;
-    case 'P':
-      keys = PAUSE_KEY; 
-      break;
+  // Lectura de botones físicos
+  bool leftButtonPressed = readLeftButton();
+  bool rightButtonPressed = readRightButton();
 
+  // Primero, verificar los botones físicos antes de leer el Serial
+  if (leftButtonPressed) {
+    keys = LEFT_KEY;
+  } else if (rightButtonPressed) {
+    keys = RIGHT_KEY;
+  } else {
+    // Si no hay pulsación de botón físico, entonces leer el Serial
+    if (Serial.available() > 0) {
+      incomingByte = Serial.read();
+      delay(10); // Pequeña pausa para estabilizar la lectura
+    }
+
+    switch (incomingByte) {
+      case 'R':
+        keys = RESET_KEY;
+        break;
+      case 'S':
+        keys = START_KEY;
+        break;
+      case 'A':
+        keys = LEFT_KEY;
+        break;
+      case 'D':
+        keys = RIGHT_KEY;
+        break;
+      default:
+        keys = NO_KEY;
+        break;
+      case 'P':
+        keys = PAUSE_KEY; 
+        break;
+    }
+    incomingByte = 'N'; // Restablecer la entrada para evitar repeticiones
   }
-incomingByte = 'N'; //! SOLUCIÓN BIT MOVIENDOSE SIN PARAR
-return keys;
+  return keys;
 }
+
 //=======================================================
 //  FUNCTION: state_machine_run
 //=======================================================
 void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointerShiftDir)
 {
   /* Global variables. */
-  int count;
+  int count; 
 
   PrintALLMatrix(pointerRegMatrix, pointerRegCar);
 
