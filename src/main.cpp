@@ -24,6 +24,7 @@
 #define BUTTON_RIGHT 19
 #define REALMATRIX // Variable to use real matrix. Comment to not use it.
 
+
 #ifdef REALMATRIX
 #include "LedControl.h"
 /* Pin definition for MAX72XX.
@@ -63,7 +64,7 @@ unsigned long delaytime = 2000;
 int i = 0;
 
 /* States ans signals to change state*/
-enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGHT, STATELOST, STATENEXTLEVEL, STATELEVELPASS, STATEPAUSE};
+enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGHT, STATELOST, STATENEXTLEVEL, STATELEVELPASS, STATEPAUSE, STATEMOVE, STATECARS};
 uint8_t state = STATERESET;
 
 enum Keys_enum {RESET_KEY, START_KEY, LEFT_KEY, RIGHT_KEY, NO_KEY, PAUSE_KEY};
@@ -97,10 +98,11 @@ void setup()
   /* The MAX72XX is in power-saving mode on startup, we have to do a wakeup call. */
   lc.shutdown(0, false);
   /* Set the brightness to a medium values. */
-  lc.setIntensity(0, 8);
+  lc.setIntensity(0, 1); //? NORMALMENTE ES 8 LA INTENSIDAD
   /* Clear the display. */
   lc.clearDisplay(0);
 #endif
+
   /* Serial port initialization. */
   Serial.begin(9600);
 
@@ -403,35 +405,46 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
     case STATECHECK:
       pointerShiftDir[0] = B00000000;
       writeCarBase(pointerRegCar, pointerShiftDir);
-      writeGoCarsMatrix(pointerRegMatrix);
-      delay(delaytime);
       checkLostMatrix(pointerRegMatrix, pointerRegCar);
       if (Status == LOST)
         state = STATELOST;
-      else if (keys == PAUSE_KEY) // Añade esta línea para verificar la tecla de pausa
+      else if (i == 10+8 | i == 15+8 | i == 20+8)
+        state = STATELEVELPASS;
+      else if (keys != NO_KEY)
+        state = STATEMOVE;
+      else
+        state = STATECARS;
+      break;
+    
+    case STATEMOVE:
+      if (keys == PAUSE_KEY) // Añade esta línea para verificar la tecla de pausa
         state  = STATEPAUSE;      // Cambia al estado de pausa
       else if (keys == RESET_KEY)
         state = STATERESET;
       else if (keys == LEFT_KEY)
-        state = STATELEFT;
+        {state = STATELEFT;
+        break;}
       else if (keys == RIGHT_KEY)
-        state = STATERIGHT;
-      else if (i == 10+8 | i == 15+8 | i == 20+8)
-        state = STATELEVELPASS;
+        {state = STATERIGHT;
+        break;}
       else
         state = STATECHECK;
       break;
-
+    case STATECARS:
+      writeGoCarsMatrix(pointerRegMatrix);
+      delay(delaytime);
+      state=STATECHECK;
+      break;
     case STATELEFT:
       pointerShiftDir[0] = B00000001;
       writeCarBase(pointerRegCar, pointerShiftDir);
-      state = STATECHECK;
+      state = STATEMOVE;
       break;
 
     case STATERIGHT:
       pointerShiftDir[0] = B00000010;
       writeCarBase(pointerRegCar, pointerShiftDir);
-      state = STATECHECK;
+      state = STATEMOVE;
       break;
 
     case STATELOST:
@@ -451,10 +464,10 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
       if (delaytime == 2000) //* el 2000 toca cambiarlo si cambia en la línea 58
         delaytime=1500; //* delay para N2
       else if (delaytime == 1500) //* el 1500 toca cambiarlo si cambia en la anterior linea
-        delaytime=1000;
+        delaytime=1000; //* delay para N3
       else
-        delaytime=delaytime;
-      state = STATECHECK;
+        delaytime=delaytime; //* se mantiene delay actual
+      state = STATEMOVE;
       break;
     
     default:
