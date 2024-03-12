@@ -143,6 +143,7 @@ void writeResetMatrix(byte *pointerRegMatrix, byte *pointerRegCar)
   pointerRegMatrix[0] = B11111111;
   /* Here is the data to reset bottomCar */
   pointerRegCar[0] = B00000000;
+  i=0;
 }
 //=======================================================
 //  FUNCTION: writeStartMatrix
@@ -422,11 +423,9 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
       else if (keys == RESET_KEY)
         state = STATERESET;
       else if (keys == LEFT_KEY)
-        {state = STATELEFT;
-        break;}
+        state = STATELEFT;
       else if (keys == RIGHT_KEY)
-        {state = STATERIGHT;
-        break;}
+        state = STATERIGHT;
       else
         state = STATECHECK;
       break;
@@ -438,13 +437,13 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
     case STATELEFT:
       pointerShiftDir[0] = B00000001;
       writeCarBase(pointerRegCar, pointerShiftDir);
-      state = STATEMOVE;
+      state = STATECHECK;
       break;
 
     case STATERIGHT:
       pointerShiftDir[0] = B00000010;
       writeCarBase(pointerRegCar, pointerShiftDir);
-      state = STATEMOVE;
+      state = STATECHECK;
       break;
 
     case STATELOST:
@@ -467,7 +466,7 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
         delaytime=1000; //* delay para N3
       else
         delaytime=delaytime; //* se mantiene delay actual
-      state = STATEMOVE;
+      state = STATECARS;
       break;
     
     default:
