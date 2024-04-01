@@ -62,10 +62,14 @@ unsigned long delaytime = 2000;
 
 /* Global Variables */
 int i = 0;
+int count = 0; 
 
 /* States ans signals to change state*/
-enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGHT, STATELOST, STATENEXTLEVEL, STATELEVELPASS, STATEPAUSE, STATEMOVE, STATECARS};
+enum State_enum {STATERESET, STATESTART, STATECLEAR, STATECHECK, STATELEFT, STATERIGHT, STATELOST, STATENEXTLEVEL, STATELEVELPASS, STATEPAUSE};
 uint8_t state = STATERESET;
+
+enum State_enumC {STATEMOVE, STATENOMOVE};
+uint8_t stateC = STATENOMOVE;
 
 enum Keys_enum {RESET_KEY, START_KEY, LEFT_KEY, RIGHT_KEY, NO_KEY, PAUSE_KEY};
 uint8_t keys = RESET_KEY;
@@ -200,7 +204,45 @@ void writeLostMatrix(byte *pointerRegMatrix, byte *pointerRegCar)
   pointerRegMatrix[1] = B10000001;
   pointerRegMatrix[0] = B01111110;
   /* Here is the data to lost matrix */
-  pointerRegCar[0] = B00000000;
+  //pointerRegCar[0] = B00000000;
+}
+//=======================================================
+//  FUNCTION: writePassLevel2
+//=======================================================
+void writePassLevel2(byte *pointerRegMatrix, byte *pointerRegCar)
+{
+  /* Global variables. */
+
+  /* Here is the data to start matrix */
+  pointerRegMatrix[7] = B00001001;
+  pointerRegMatrix[6] = B00001011;
+  pointerRegMatrix[5] = B00001101;
+  pointerRegMatrix[4] = B11101001;
+  pointerRegMatrix[3] = B10000000;
+  pointerRegMatrix[2] = B11100000;
+  pointerRegMatrix[1] = B00100000;
+  pointerRegMatrix[0] = B11100000;
+/* Here is the data to start bottomCar */
+  pointerRegCar[0] = B00010000;
+}
+//=======================================================
+//  FUNCTION: writePassLevel3
+//=======================================================
+void writePassLevel3(byte *pointerRegMatrix, byte *pointerRegCar)
+{
+  /* Global variables. */
+
+  /* Here is the data to start matrix */
+  pointerRegMatrix[7] = B00001001;
+  pointerRegMatrix[6] = B00001011;
+  pointerRegMatrix[5] = B00001101;
+  pointerRegMatrix[4] = B11101001;
+  pointerRegMatrix[3] = B10000000;
+  pointerRegMatrix[2] = B11100000;
+  pointerRegMatrix[1] = B10000000;
+  pointerRegMatrix[0] = B11100000;
+/* Here is the data to start bottomCar */
+  pointerRegCar[0] = B00010000;
 }
 //=======================================================
 //  FUNCTION: writeGoCarsMatrix
@@ -324,9 +366,6 @@ void PrintALLMatrix(byte *pointerRegMatrix, byte *pointerRegCar)
 //=======================================================
 //  FUNCTION: read_KEY
 //=======================================================
-//=======================================================
-//  FUNCTION: read_KEY
-//=======================================================
 byte read_KEY(void)
 {
   // Lectura de botones físicos
@@ -371,12 +410,10 @@ byte read_KEY(void)
 }
 
 //=======================================================
-//  FUNCTION: state_machine_run
+//  FUNCTION: state_machine_run_cars
 //=======================================================
-void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointerShiftDir)
+void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointerShiftDir)
 {
-  /* Global variables. */
-  int count; 
 
   PrintALLMatrix(pointerRegMatrix, pointerRegCar);
 
@@ -395,55 +432,37 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
       writeStartMatrix(pointerRegMatrix,pointerRegCar);
       delay(delaytime);
       state = STATECLEAR;
+      count=0;
       break;
 
     case STATECLEAR:
       writeClearMatrix(pointerRegMatrix,pointerRegCar);
       delay(delaytime);
       state = STATECHECK;
+      Serial.println("CLEAR");
       break;
 
     case STATECHECK:
       pointerShiftDir[0] = B00000000;
       writeCarBase(pointerRegCar, pointerShiftDir);
+      writeGoCarsMatrix(pointerRegMatrix);
+      delay(delaytime);
       checkLostMatrix(pointerRegMatrix, pointerRegCar);
+      count++;
+      Serial.println(count);
       if (Status == LOST)
         state = STATELOST;
-      else if (i == 10+8 | i == 15+8 | i == 20+8)
+      else if (count == 18 /*10+8*/ | count == 36 /*20+16*/ | count == 54 /*30+24*/)
         state = STATELEVELPASS;
-      else if (keys != NO_KEY)
-        state = STATEMOVE;
-      else
-        state = STATECARS;
-      break;
-    
-    case STATEMOVE:
-      if (keys == PAUSE_KEY) // Añade esta línea para verificar la tecla de pausa
+      else if (keys == PAUSE_KEY) // Añade esta línea para verificar la tecla de pausa
         state  = STATEPAUSE;      // Cambia al estado de pausa
       else if (keys == RESET_KEY)
         state = STATERESET;
-      else if (keys == LEFT_KEY)
-        state = STATELEFT;
-      else if (keys == RIGHT_KEY)
-        state = STATERIGHT;
+      else if (keys != NO_KEY)
+        {stateC = STATEMOVE;
+        Serial.println("INPUT READ");}
       else
         state = STATECHECK;
-      break;
-    case STATECARS:
-      writeGoCarsMatrix(pointerRegMatrix);
-      delay(delaytime);
-      state=STATECHECK;
-      break;
-    case STATELEFT:
-      pointerShiftDir[0] = B00000001;
-      writeCarBase(pointerRegCar, pointerShiftDir);
-      state = STATECHECK;
-      break;
-
-    case STATERIGHT:
-      pointerShiftDir[0] = B00000010;
-      writeCarBase(pointerRegCar, pointerShiftDir);
-      state = STATECHECK;
       break;
 
     case STATELOST:
@@ -461,28 +480,70 @@ void state_machine_run(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointe
 
     case STATENEXTLEVEL:
       if (delaytime == 2000) //* el 2000 toca cambiarlo si cambia en la línea 58
+        {
         delaytime=1500; //* delay para N2
+        writePassLevel2(pointerRegMatrix,pointerRegCar);
+        state=STATECLEAR;
+        //delay(delaytime/2);
+        }
       else if (delaytime == 1500) //* el 1500 toca cambiarlo si cambia en la anterior linea
+        {
         delaytime=1000; //* delay para N3
+        writePassLevel3(pointerRegMatrix,pointerRegCar);
+        state=STATECLEAR;
+        //delay(delaytime/2);
+        }
       else
         delaytime=delaytime; //* se mantiene delay actual
-      state = STATECARS;
+      state = STATECHECK;
       break;
-    
-    default:
-      state = STATERESET;
-      break;
-
     case STATEPAUSE:
-  // Aquí, simplemente espera por otra presión de tecla para reanudar.
+      // Aquí, simplemente espera por otra presión de tecla para reanudar.
       if (keys == PAUSE_KEY || keys == START_KEY) { // Usar START_KEY o cualquier otra tecla para reanudar.
         state = STATECHECK; // O el estado desde el cual la pausa fue activada.
       }
       break;
+    default:
+      state = STATERESET;
+      break;
+
+
 
     
   }
 }
+//=======================================================
+//  FUNCTION: state_machine_move_car
+//=======================================================
+void state_machine_move_car(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointerShiftDir)
+{
+  PrintALLMatrix(pointerRegMatrix, pointerRegCar);
+
+  switch (stateC)
+  {
+    case STATENOMOVE:
+      if (keys == NO_KEY || state == STATEPAUSE)
+        stateC = STATENOMOVE;
+      else
+      {Serial.println("INPUT READ");
+        stateC = STATEMOVE;}
+    case STATEMOVE:
+      if (keys == LEFT_KEY)
+        {pointerShiftDir[0] = B00000001;
+        writeCarBase(pointerRegCar, pointerShiftDir);}
+      else if (keys == RIGHT_KEY)
+        {pointerShiftDir[0] = B00000010;
+        writeCarBase(pointerRegCar, pointerShiftDir);}
+      else
+        stateC = STATENOMOVE;
+      break;
+    default:
+      state = STATENOMOVE;
+      break;
+  }
+}
+
+
 //=======================================================
 //  FUNCTION: Arduino loop
 //=======================================================
@@ -490,6 +551,10 @@ void loop()
 {
   
   read_KEY();
-  state_machine_run(pointerRegMatrix,pointerRegCar,pointerShiftDir);
+  state_machine_run_cars(pointerRegMatrix,pointerRegCar,pointerShiftDir);
+  while (keys != NO_KEY){
+  state_machine_move_car(pointerRegMatrix,pointerRegCar,pointerShiftDir);
+  read_KEY();
+  }
   delay(1);
 }
