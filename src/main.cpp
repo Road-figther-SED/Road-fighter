@@ -433,6 +433,7 @@ void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
       delay(delaytime);
       state = STATECLEAR;
       count=0;
+      delaytime=2000;
       break;
 
     case STATECLEAR:
