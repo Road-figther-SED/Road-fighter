@@ -529,10 +529,10 @@ void state_machine_move_car(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
         stateC = STATEMOVE;}
     case STATEMOVE:
       if (keys == LEFT_KEY)
-        {pointerShiftDir[0] = B00000001;
+        {pointerShiftDir[0] = B00000010;
         writeCarBase(pointerRegCar, pointerShiftDir);}
       else if (keys == RIGHT_KEY)
-        {pointerShiftDir[0] = B00000010;
+        {pointerShiftDir[0] = B00000001;
         writeCarBase(pointerRegCar, pointerShiftDir);}
       else
         stateC = STATENOMOVE;
