@@ -37,6 +37,9 @@ LedControl lc=LedControl(23,18,5,1);
 #endif
 bool readLeftButton();
 bool readRightButton();
+bool lastStateLeft = true; // Los botones están en pull-up, así que el estado "no presionado" es HIGH
+bool lastStateRight = true;
+
 //=======================================================
 //  IF PROBLEMS
 //=======================================================
@@ -366,23 +369,32 @@ void PrintALLMatrix(byte *pointerRegMatrix, byte *pointerRegCar)
 //=======================================================
 //  FUNCTION: read_KEY
 //=======================================================
-byte read_KEY(void)
-{
+byte read_KEY(void) {
   // Lectura de botones físicos
   bool leftButtonPressed = readLeftButton();
   bool rightButtonPressed = readRightButton();
 
-  // Primero, verificar los botones físicos antes de leer el Serial
-  if (leftButtonPressed) {
-    keys = LEFT_KEY;
-  } else if (rightButtonPressed) {
-    keys = RIGHT_KEY;
-  } else {
-    // Si no hay pulsación de botón físico, entonces leer el Serial
-    if (Serial.available() > 0) {
-      incomingByte = Serial.read();
-      delay(10); // Pequeña pausa para estabilizar la lectura
-    }
+  // Restablece keys a NO_KEY para evitar acciones continuas
+  keys = NO_KEY;
+
+  // Detección de flanco descendente para botón izquierdo
+  if (leftButtonPressed == LOW && lastStateLeft == HIGH) {
+    keys = LEFT_KEY; // Ajusta según la lógica correcta de tu botón
+  }
+
+  // Detección de flanco descendente para botón derecho
+  if (rightButtonPressed == LOW && lastStateRight == HIGH) {
+    keys = RIGHT_KEY; // Ajusta según la lógica correcta de tu botón
+  }
+
+  // Actualización de los estados anteriores al final
+  lastStateLeft = leftButtonPressed;
+  lastStateRight = rightButtonPressed;
+
+  // Manejo de entrada serial se mantiene igual
+  if (keys == NO_KEY && Serial.available() > 0) { // Si no se ha detectado pulsación de botón físico
+    incomingByte = Serial.read();
+    delay(10); // Pequeña pausa para estabilizar la lectura
 
     switch (incomingByte) {
       case 'R':
@@ -397,17 +409,18 @@ byte read_KEY(void)
       case 'D':
         keys = RIGHT_KEY;
         break;
+      case 'P':
+        keys = PAUSE_KEY;
+        break;
       default:
         keys = NO_KEY;
-        break;
-      case 'P':
-        keys = PAUSE_KEY; 
         break;
     }
     incomingByte = 'N'; // Restablecer la entrada para evitar repeticiones
   }
   return keys;
 }
+
 
 //=======================================================
 //  FUNCTION: state_machine_run_cars
@@ -516,33 +529,36 @@ void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
 //=======================================================
 //  FUNCTION: state_machine_move_car
 //=======================================================
-void state_machine_move_car(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointerShiftDir)
-{
+void state_machine_move_car(byte *pointerRegMatrix, byte *pointerRegCar, byte *pointerShiftDir) {
   PrintALLMatrix(pointerRegMatrix, pointerRegCar);
 
-  switch (stateC)
-  {
+  switch (stateC) {
     case STATENOMOVE:
-      if (keys == NO_KEY || state == STATEPAUSE)
-        stateC = STATENOMOVE;
-      else
-      {Serial.println("INPUT READ");
-        stateC = STATEMOVE;}
+      // Si 'keys' indica una acción, cambia al estado STATEMOVE para procesar esa acción.
+      if (keys != NO_KEY) {
+        stateC = STATEMOVE;
+      }
+      break;
     case STATEMOVE:
-      if (keys == LEFT_KEY)
-        {pointerShiftDir[0] = B00000010;
-        writeCarBase(pointerRegCar, pointerShiftDir);}
-      else if (keys == RIGHT_KEY)
-        {pointerShiftDir[0] = B00000001;
-        writeCarBase(pointerRegCar, pointerShiftDir);}
-      else
-        stateC = STATENOMOVE;
+      // Procesa el movimiento basado en la tecla presionada.
+      if (keys == LEFT_KEY) {
+        pointerShiftDir[0] = B00000001; // Corrige la dirección para que coincida con la expectativa.
+        writeCarBase(pointerRegCar, pointerShiftDir);
+      } else if (keys == RIGHT_KEY) {
+        pointerShiftDir[0] = B00000010; // Corrige la dirección para que coincida con la expectativa.
+        writeCarBase(pointerRegCar, pointerShiftDir);
+      }
+      // Vuelve al estado de no movimiento después de procesar la acción.
+      stateC = STATENOMOVE;
       break;
     default:
-      state = STATENOMOVE;
+      stateC = STATENOMOVE;
       break;
   }
+  // Resetea 'keys' al final para asegurarse de que cada acción se procese una sola vez.
+  keys = NO_KEY;
 }
+
 
 
 //=======================================================
@@ -550,12 +566,17 @@ void state_machine_move_car(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
 //=======================================================
 void loop()
 {
-  
+  // Llama a read_KEY() para actualizar el estado de los botones.
   read_KEY();
+
+  // Ejecuta la lógica principal de movimiento y estado del juego.
   state_machine_run_cars(pointerRegMatrix,pointerRegCar,pointerShiftDir);
-  while (keys != NO_KEY){
+
+  // Ahora read_KEY() ya maneja la lógica de flanco ascendente, por lo que solo necesitas llamar a
+  // state_machine_move_car() una vez por ciclo de loop, no dentro de un while.
+  // Esto asegura que cada pulsación de botón se maneje de forma individual.
   state_machine_move_car(pointerRegMatrix,pointerRegCar,pointerShiftDir);
-  read_KEY();
-  }
+
+  // Un breve delay para estabilizar la lectura de los botones y no sobrecargar el loop.
   delay(1);
 }
