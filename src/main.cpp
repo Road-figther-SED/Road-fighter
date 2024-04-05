@@ -245,6 +245,25 @@ void writePassLevel3(byte *pointerRegMatrix, byte *pointerRegCar)
   pointerRegCar[0] = B00010000;
 }
 //=======================================================
+//  FUNCTION: writeGameWon
+//=======================================================
+void writeGameWon(byte *pointerRegMatrix, byte *pointerRegCar)
+{
+  /* Global variables. */
+
+  /* Here is the data to start matrix */
+  pointerRegMatrix[7] = B00000110;
+  pointerRegMatrix[6] = B00000001;
+  pointerRegMatrix[5] = B00001101;
+  pointerRegMatrix[4] = B01101001;
+  pointerRegMatrix[3] = B00010110;
+  pointerRegMatrix[2] = B11010000;
+  pointerRegMatrix[1] = B10010000;
+  pointerRegMatrix[0] = B01100000;
+/* Here is the data to start bottomCar */
+  pointerRegCar[0] = B00000000;
+}
+//=======================================================
 //  FUNCTION: writeGoCarsMatrix
 //=======================================================
 void writeGoCarsMatrix(byte *pointerRegMatrix)
@@ -362,7 +381,7 @@ void PrintALLMatrix(byte *pointerRegMatrix, byte *pointerRegCar)
   Serial.println("########");
 }
 
-
+int DELAY = delaytime;
 //=======================================================
 //  FUNCTION: read_KEY
 //=======================================================
@@ -375,8 +394,12 @@ byte read_KEY(void)
   // Primero, verificar los botones físicos antes de leer el Serial
   if (leftButtonPressed) {
     keys = LEFT_KEY;
+    DELAY = delaytime;
+    delaytime=0;
   } else if (rightButtonPressed) {
     keys = RIGHT_KEY;
+    DELAY = delaytime;
+    delaytime=0;
   } else {
     // Si no hay pulsación de botón físico, entonces leer el Serial
     if (Serial.available() > 0) {
@@ -448,6 +471,7 @@ void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
       writeCarBase(pointerRegCar, pointerShiftDir);
       writeGoCarsMatrix(pointerRegMatrix);
       delay(delaytime);
+      delaytime=DELAY;
       checkLostMatrix(pointerRegMatrix, pointerRegCar);
       count++;
       Serial.println(count);
@@ -494,6 +518,12 @@ void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
         state=STATECLEAR;
         //delay(delaytime/2);
         }
+      else if (delaytime == 1000) //* el 1000 toca cambiarlo si cambia en la anterior linea
+      {
+        writeGameWon(pointerRegMatrix,pointerRegCar);
+        state=STATEPAUSE;
+        break;
+      }
       else
         delaytime=delaytime; //* se mantiene delay actual
       state = STATECHECK;
