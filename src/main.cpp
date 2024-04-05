@@ -61,7 +61,9 @@ byte RegBACKGTYPE_dataRANDOM;
 byte RegBACKGTYPE_dataZEROS = B00000000;
 
 /* Time delays. */
-unsigned long delaytime = 2000;
+unsigned long delaytime = 1000;
+unsigned long previousMillis = 0;
+unsigned long interval = 1000;
 
 /* Global Variables */
 int i = 0;
@@ -217,14 +219,14 @@ void writePassLevel2(byte *pointerRegMatrix, byte *pointerRegCar)
   /* Global variables. */
 
   /* Here is the data to start matrix */
-  pointerRegMatrix[7] = B00001001;
-  pointerRegMatrix[6] = B00001011;
-  pointerRegMatrix[5] = B00001101;
-  pointerRegMatrix[4] = B11101001;
-  pointerRegMatrix[3] = B10000000;
-  pointerRegMatrix[2] = B11100000;
-  pointerRegMatrix[1] = B00100000;
-  pointerRegMatrix[0] = B11100000;
+  pointerRegMatrix[7] = B00000000;
+  pointerRegMatrix[6] = B11101001;
+  pointerRegMatrix[5] = B10001001;
+  pointerRegMatrix[4] = B11101011;
+  pointerRegMatrix[3] = B00101101;
+  pointerRegMatrix[2] = B11101001;
+  pointerRegMatrix[1] = B00000000;
+  pointerRegMatrix[0] = B00000000;
 /* Here is the data to start bottomCar */
   pointerRegCar[0] = B00010000;
 }
@@ -236,14 +238,14 @@ void writePassLevel3(byte *pointerRegMatrix, byte *pointerRegCar)
   /* Global variables. */
 
   /* Here is the data to start matrix */
-  pointerRegMatrix[7] = B00001001;
-  pointerRegMatrix[6] = B00001011;
-  pointerRegMatrix[5] = B00001101;
-  pointerRegMatrix[4] = B11101001;
-  pointerRegMatrix[3] = B10000000;
-  pointerRegMatrix[2] = B11100000;
-  pointerRegMatrix[1] = B10000000;
-  pointerRegMatrix[0] = B11100000;
+  pointerRegMatrix[7] = B00000000;
+  pointerRegMatrix[6] = B11101001;
+  pointerRegMatrix[5] = B10001001;
+  pointerRegMatrix[4] = B11101011;
+  pointerRegMatrix[3] = B10001101;
+  pointerRegMatrix[2] = B11101001;
+  pointerRegMatrix[1] = B00000000;
+  pointerRegMatrix[0] = B00000000;
 /* Here is the data to start bottomCar */
   pointerRegCar[0] = B00010000;
 }
@@ -276,7 +278,52 @@ void writeGoCarsMatrix(byte *pointerRegMatrix)
 
   i = i + 1;
   /* Here is the data to start matrix */
-  RegBACKGTYPE_dataRANDOM = random(1, 255);
+  unsigned int numeros[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 28, 32, 33,
+   34, 35, 36, 37, 38, 40, 41, 42, 44, 48, 49, 50, 52, 56, 64, 65, 66, 67, 68, 69, 70, 72, 73, 74, 76, 80, 81, 82, 84, 88,
+   96, 97, 98, 100, 104, 112, 128, 129, 130, 131, 132, 133, 134, 136, 137, 138, 140, 144, 145, 146, 148, 152, 160, 161, 162,
+   164, 168, 176, 192, 193, 194, 196, 200, 208, 224};
+
+  unsigned int numeros2[] = {15, 23, 27, 29, 30, 31, 39, 43, 45, 46, 47, 51, 53, 54, 55, 57, 58, 59, 60, 61, 62,
+  71, 75, 77, 78, 79, 83, 85, 86, 87, 89, 90, 91, 92, 93, 94, 99, 101, 102, 103,
+  105, 106, 107, 108, 109, 110, 112, 113, 114, 115, 116, 117, 118, 120, 121, 122,
+  124, 135, 139, 141, 142, 143, 147, 149, 150, 151, 153, 154, 155, 156, 157, 158,
+  163, 165, 166, 167, 169, 170, 171, 172, 173, 174, 177, 178, 179, 180, 181, 182,
+  184, 185, 186, 188, 195, 197, 198, 199, 201, 202, 203, 204, 205, 206, 209, 210,
+  211, 212, 213, 214, 216, 217, 218, 220, 225, 226, 227, 228, 229, 230, 232, 233,
+  234, 236, 240, 241, 242, 244, 248};
+
+  unsigned int numeros_combined[] = {
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37,
+  38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+  56, 57, 58, 59, 60, 61, 62, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74,
+  75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92,
+  93, 94, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 112,
+  113, 114, 115, 116, 117, 118, 120, 121, 122, 124, 128, 129, 130, 131,
+  132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145,
+  146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 160,
+  161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
+  176, 177, 178, 179, 180, 181, 182, 184, 185, 186, 188, 192, 193, 194,
+  195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 208, 209,
+  210, 211, 212, 213, 214, 216, 217, 218, 220, 224, 225, 226, 227, 228,
+  229, 230, 232, 233, 234, 236, 240, 241, 242, 244, 248};
+
+  unsigned int numeros3[] = {63, 95, 111, 119, 123, 125, 126, 127, 159, 175, 183, 187, 189, 190, 191,
+  207, 215, 219, 221, 222, 223, 231, 235, 237, 238, 239, 243, 245, 246, 247, 249, 250, 251,
+  252, 253, 254, 255};
+
+  size_t size = sizeof(numeros) / sizeof(numeros[0]);
+  size_t size2 = sizeof(numeros_combined) / sizeof(numeros_combined[0]);
+  
+  if (delaytime == 1000){
+    RegBACKGTYPE_dataRANDOM = numeros[random(0,size)];
+    Serial.println(size);
+  } else if (delaytime == 666){
+    RegBACKGTYPE_dataRANDOM = numeros_combined[random(0,size2)];
+    Serial.println(size2);
+  } else {
+    RegBACKGTYPE_dataRANDOM = random(1, 255);
+  }
 
   for (m = 0; m < 7; m++)
   {
@@ -383,37 +430,26 @@ void PrintALLMatrix(byte *pointerRegMatrix, byte *pointerRegCar)
   PrintMatrix(pointerRegMatrix, pointerRegCar);
   Serial.println("########");
 }
-
-int DELAY = delaytime;
 //=======================================================
 //  FUNCTION: read_KEY
 //=======================================================
-byte read_KEY(void) {
+byte read_KEY(void)
+{
   // Lectura de botones físicos
   bool leftButtonPressed = readLeftButton();
   bool rightButtonPressed = readRightButton();
 
-  // Restablece keys a NO_KEY para evitar acciones continuas
-  keys = NO_KEY;
-
-  // Detección de flanco descendente para botón izquierdo
-  if (leftButtonPressed == LOW && lastStateLeft == HIGH) {
-    keys = LEFT_KEY; // Ajusta según la lógica correcta de tu botón
-  }
-
-  // Detección de flanco descendente para botón derecho
-  if (rightButtonPressed == LOW && lastStateRight == HIGH) {
-    keys = RIGHT_KEY; // Ajusta según la lógica correcta de tu botón
-  }
-
-  // Actualización de los estados anteriores al final
-  lastStateLeft = leftButtonPressed;
-  lastStateRight = rightButtonPressed;
-
-  // Manejo de entrada serial se mantiene igual
-  if (keys == NO_KEY && Serial.available() > 0) { // Si no se ha detectado pulsación de botón físico
-    incomingByte = Serial.read();
-    delay(10); // Pequeña pausa para estabilizar la lectura
+  // Primero, verificar los botones físicos antes de leer el Serial
+  if (leftButtonPressed) {
+    keys = LEFT_KEY;
+  } else if (rightButtonPressed) {
+    keys = RIGHT_KEY;
+  } else {
+    // Si no hay pulsación de botón físico, entonces leer el Serial
+    if (Serial.available() > 0) {
+      incomingByte = Serial.read();
+      delay(10); // Pequeña pausa para estabilizar la lectura
+    }
 
     switch (incomingByte) {
       case 'R':
@@ -428,11 +464,11 @@ byte read_KEY(void) {
       case 'D':
         keys = RIGHT_KEY;
         break;
-      case 'P':
-        keys = PAUSE_KEY;
-        break;
       default:
         keys = NO_KEY;
+        break;
+      case 'P':
+        keys = PAUSE_KEY; 
         break;
     }
     incomingByte = 'N'; // Restablecer la entrada para evitar repeticiones
@@ -465,7 +501,8 @@ void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
       delay(delaytime);
       state = STATECLEAR;
       count=0;
-      delaytime=2000;
+      delaytime=1000;
+      interval=1000;
       break;
 
     case STATECLEAR:
@@ -479,14 +516,16 @@ void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
       pointerShiftDir[0] = B00000000;
       writeCarBase(pointerRegCar, pointerShiftDir);
       writeGoCarsMatrix(pointerRegMatrix);
-      delay(delaytime);
+      //delay(delaytime);
       checkLostMatrix(pointerRegMatrix, pointerRegCar);
       count++;
       Serial.println(count);
       if (Status == LOST)
         state = STATELOST;
-      else if (count == 18 /*10+8*/ | count == 36 /*20+16*/ | count == 54 /*30+24*/)
-        state = STATELEVELPASS;
+      else if (count == 29 /*20+9*/ | count == 68 /*50+18*/ | count == 117 /*90+27*/)
+        {state = STATELEVELPASS;
+        Serial.println(count);
+        Serial.println("                 Paso nivel");}
       else if (keys == PAUSE_KEY) // Añade esta línea para verificar la tecla de pausa
         state  = STATEPAUSE;      // Cambia al estado de pausa
       else if (keys == RESET_KEY)
@@ -512,21 +551,23 @@ void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
       break;
 
     case STATENEXTLEVEL:
-      if (delaytime == 2000) //* el 2000 toca cambiarlo si cambia en la línea 58
+      if (delaytime == 1000) //* el 2000 toca cambiarlo si cambia en la línea 58
         {
-        delaytime=1500; //* delay para N2
+        delaytime=666; //* delay para N2
+        interval=666;
         writePassLevel2(pointerRegMatrix,pointerRegCar);
         state=STATECLEAR;
         //delay(delaytime/2);
         }
-      else if (delaytime == 1500) //* el 1500 toca cambiarlo si cambia en la anterior linea
+      else if (delaytime == 666) //* el 1500 toca cambiarlo si cambia en la anterior linea
         {
-        delaytime=1000; //* delay para N3
+        delaytime=333; //* delay para N3
+        interval=333;
         writePassLevel3(pointerRegMatrix,pointerRegCar);
         state=STATECLEAR;
         //delay(delaytime/2);
         }
-      else if (delaytime == 1000) //* el 1000 toca cambiarlo si cambia en la anterior linea
+      else if (delaytime == 333) //* el 1000 toca cambiarlo si cambia en la anterior linea
       {
         writeGameWon(pointerRegMatrix,pointerRegCar);
         state=STATEPAUSE;
@@ -534,6 +575,7 @@ void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
       }
       else
         delaytime=delaytime; //* se mantiene delay actual
+        interval = interval;
       state = STATECHECK;
       break;
     case STATEPAUSE:
@@ -592,19 +634,31 @@ void state_machine_move_car(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
 void loop()
 {
   // Llama a read_KEY() para actualizar el estado de los botones.
+  unsigned long currentMillis = millis();
   read_KEY();
-
   // Ejecuta la lógica principal de movimiento y estado del juego.
-  state_machine_run_cars(pointerRegMatrix,pointerRegCar,pointerShiftDir);
-
+  if (currentMillis - previousMillis >= interval){
+    previousMillis=currentMillis;
+    state_machine_run_cars(pointerRegMatrix,pointerRegCar,pointerShiftDir);
+    //state_machine_move_car(pointerRegMatrix,pointerRegCar,pointerShiftDir);
+    /*while (keys != NO_KEY){
+      state_machine_move_car(pointerRegMatrix,pointerRegCar,pointerShiftDir);
+      read_KEY();
+      }*/
+  }
+  while (keys != NO_KEY){
+      state_machine_move_car(pointerRegMatrix,pointerRegCar,pointerShiftDir);
+      read_KEY();
+      }
   // Ahora read_KEY() ya maneja la lógica de flanco ascendente, por lo que solo necesitas llamar a
   // state_machine_move_car() una vez por ciclo de loop, no dentro de un while.
   // Esto asegura que cada pulsación de botón se maneje de forma individual.
   //state_machine_move_car(pointerRegMatrix,pointerRegCar,pointerShiftDir);
+  /*
   while (keys != NO_KEY){
   state_machine_move_car(pointerRegMatrix,pointerRegCar,pointerShiftDir);
   read_KEY();
-  }
+  }*/
   // Un breve delay para estabilizar la lectura de los botones y no sobrecargar el loop.
-  delay(1);
+  delay(0.1);
 }
