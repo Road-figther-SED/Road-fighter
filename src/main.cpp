@@ -394,12 +394,8 @@ byte read_KEY(void)
   // Primero, verificar los botones físicos antes de leer el Serial
   if (leftButtonPressed) {
     keys = LEFT_KEY;
-    DELAY = delaytime;
-    delaytime=0;
   } else if (rightButtonPressed) {
     keys = RIGHT_KEY;
-    DELAY = delaytime;
-    delaytime=0;
   } else {
     // Si no hay pulsación de botón físico, entonces leer el Serial
     if (Serial.available() > 0) {
@@ -471,7 +467,6 @@ void state_machine_run_cars(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
       writeCarBase(pointerRegCar, pointerShiftDir);
       writeGoCarsMatrix(pointerRegMatrix);
       delay(delaytime);
-      delaytime=DELAY;
       checkLostMatrix(pointerRegMatrix, pointerRegCar);
       count++;
       Serial.println(count);
