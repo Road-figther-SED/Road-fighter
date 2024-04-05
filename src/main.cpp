@@ -581,7 +581,7 @@ void state_machine_move_car(byte *pointerRegMatrix, byte *pointerRegCar, byte *p
       break;
   }
   // Resetea 'keys' al final para asegurarse de que cada acción se procese una sola vez.
-  keys = NO_KEY;
+  //keys = NO_KEY;
 }
 
 
@@ -600,8 +600,11 @@ void loop()
   // Ahora read_KEY() ya maneja la lógica de flanco ascendente, por lo que solo necesitas llamar a
   // state_machine_move_car() una vez por ciclo de loop, no dentro de un while.
   // Esto asegura que cada pulsación de botón se maneje de forma individual.
+  //state_machine_move_car(pointerRegMatrix,pointerRegCar,pointerShiftDir);
+  while (keys != NO_KEY){
   state_machine_move_car(pointerRegMatrix,pointerRegCar,pointerShiftDir);
-
+  read_KEY();
+  }
   // Un breve delay para estabilizar la lectura de los botones y no sobrecargar el loop.
   delay(1);
 }
